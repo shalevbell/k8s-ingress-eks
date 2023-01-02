@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-deployment
+spec:
+  selector:
+    matchLabels:
+      app: flask
+  replicas: 4
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: flask
+    spec:
+      volumes:
+        - name: nfs-pv-storage
+          persistentVolumeClaim:
+            claimName: nfs-pvc
+      containers:
+      - name: flask
+        image: shlevbell/flaskapp:latest
+        env:
+          - name: BG_COLOR
+            valueFrom:
+              configMapKeyRef:
+                name: bg
+                key: BG_COLOR
+        ports:
+        - containerPort: 9090
+        volumeMounts:
+          - mountPath: /app/static/history
+            name: nfs-pv-storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-service
+spec:
+  type: ClusterIP
+  selector:
+    app: flask
+  ports:
+    - port: 9090
